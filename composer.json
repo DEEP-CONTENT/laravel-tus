@@ -1,6 +1,7 @@
 {
     "name": "kalynasolutions/laravel-tus",
     "description": "Laravel package for handling resumable file uploads with tus protocol and native Uppy.js support without additional tus servers",
+    "type": "laravel-library",
     "keywords": [
         "kalynasolutions",
         "laravel",
