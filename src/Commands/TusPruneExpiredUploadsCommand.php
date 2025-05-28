@@ -19,7 +19,7 @@ class TusPruneExpiredUploadsCommand extends Command
 
         $now = now()->getTimestamp();
 
-        $files = Tus::storage()->files(config('tus.storage_path'));
+        $files = Tus::storage()->files(Tus::getStoragePath());
 
         $d = 0;
 

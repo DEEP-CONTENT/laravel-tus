@@ -15,6 +15,8 @@ class Tus
 {
     protected const VERSION = '1.0.0';
 
+    protected string $storageDisk;
+
     public function version(): string
     {
         return static::VERSION;
@@ -77,13 +79,11 @@ class Tus
     public function id(): string
     {
         while (true) {
-
             $id = Str::random(40);
 
             if (! $this->storage()->exists($this->path($id))) {
                 break;
             }
-
         }
 
         return $id;
@@ -93,8 +93,8 @@ class Tus
     {
         return str('')
             ->when(
-                value: ! empty(config('tus.storage_path')),
-                callback: fn (Stringable $str) => $str->append(config('tus.storage_path'), '/')
+                value: ! empty($this->getStoragePath()),
+                callback: fn (Stringable $str) => $str->append($this->getStoragePath(), '/')
             )
             ->append($id)
             ->when(
@@ -106,31 +106,84 @@ class Tus
 
     public function storage(): Filesystem
     {
-        return Storage::disk(config('tus.storage_disk'));
+        $this->storageDisk = config('tus.storage_disk');
+
+        return Storage::disk($this->storageDisk);
     }
 
     public function append(string $path, $data): int
     {
-        $path = $this->storage()->path($path);
+        if ($this->storageDisk === 's3') {
+            // S3 doesn't support direct append operations
+            $tempFile = tempnam(sys_get_temp_dir(), 'tus_upload_');
 
-        if (! is_writable($path)) {
-            throw new FileAppendException(message: 'File not exists or not writable');
+            try {
+                // If file exists, download it first
+                if ($this->storage()->exists($path)) {
+                    $existingContent = $this->storage()->get($path);
+                    file_put_contents($tempFile, $existingContent);
+                }
+
+                // Open and append new data to temp file
+                $fp = fopen($tempFile, 'a');
+                if ($fp === false) {
+                    throw new FileAppendException(message: 'Failed to open temporary file');
+                }
+
+                // Write data to temp file
+                $bytesWritten = stream_copy_to_stream($data, $fp);
+                fclose($fp);
+
+                if ($bytesWritten === false) {
+                    throw new FileAppendException(message: 'Failed to write to temporary file');
+                }
+
+                // Upload complete file back to S3
+                $this->storage()->put($path, file_get_contents($tempFile));
+
+                // Cleanup temp file
+                unlink($tempFile);
+
+                return $bytesWritten;
+            } catch (\Throwable $e) {
+                // Cleanup on errors
+                if (file_exists($tempFile)) {
+                    unlink($tempFile);
+                }
+                throw new FileAppendException(message: 'S3 upload error: '.$e->getMessage());
+            }
+        } else {
+            // Original code for local filesystems
+            $fullPath = $this->storage()->path($path);
+            if (! is_writable($fullPath)) {
+                throw new FileAppendException(message: 'File not exists or not writable');
+            }
+
+            $fp = fopen($fullPath, 'a');
+            if ($fp === false) {
+                throw new FileAppendException(message: 'File open error');
+            }
+
+            $bytesWritten = stream_copy_to_stream($data, $fp);
+            fclose($fp);
+
+            if ($bytesWritten === false) {
+                throw new FileAppendException(message: 'File write error');
+            }
+
+            return $bytesWritten;
+        }
+    }
+
+    public function getStoragePath(): string
+    {
+        $path = config('tus.storage_path');
+        if (class_exists(\Spatie\Multitenancy\Models\Tenant::class)) {
+            $tenant = \Spatie\Multitenancy\Models\Tenant::current();
+            $parts = explode('.', $tenant->domain);
+            $path .= '/'.$parts[0] ?? '';
         }
 
-        $fp = fopen($path, 'a');
-
-        if ($fp === false) {
-            throw new FileAppendException(message: 'File open error');
-        }
-
-        $fw = stream_copy_to_stream($data, $fp);
-
-        if ($fw === false) {
-            throw new FileAppendException(message: 'File write error');
-        }
-
-        fclose($fp);
-
-        return $fw;
+        return $path;
     }
 }
