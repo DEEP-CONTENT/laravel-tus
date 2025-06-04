@@ -3,13 +3,13 @@
 namespace KalynaSolutions\Tus\Events;
 
 use Illuminate\Foundation\Events\Dispatchable;
-use KalynaSolutions\Tus\Helpers\TusFile;
+use KalynaSolutions\Tus\Contracts\TusFileInterface;
 
 class FileUploadFinished
 {
     use Dispatchable;
 
-    public function __construct(public TusFile $tusFile)
+    public function __construct(public TusFileInterface $tusFile)
     {
         //
     }
