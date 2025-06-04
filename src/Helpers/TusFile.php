@@ -7,7 +7,7 @@ use KalynaSolutions\Tus\Contracts\TusFileInterface;
 use KalynaSolutions\Tus\Exceptions\FileNotFoundException;
 use KalynaSolutions\Tus\Facades\Tus;
 
-final readonly class TusFile implements TusFileInterface, TusFileFactoryInterface
+final readonly class TusFile implements TusFileFactoryInterface
 {
     public string $id;
 
