@@ -2,10 +2,12 @@
 
 namespace KalynaSolutions\Tus\Helpers;
 
+use KalynaSolutions\Tus\Contracts\TusFileFactoryInterface;
+use KalynaSolutions\Tus\Contracts\TusFileInterface;
 use KalynaSolutions\Tus\Exceptions\FileNotFoundException;
 use KalynaSolutions\Tus\Facades\Tus;
 
-final readonly class TusFile
+final readonly class TusFile implements TusFileInterface, TusFileFactoryInterface
 {
     public string $id;
 
