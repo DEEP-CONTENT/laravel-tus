@@ -7,7 +7,7 @@ use KalynaSolutions\Tus\Contracts\TusFileInterface;
 use KalynaSolutions\Tus\Exceptions\FileNotFoundException;
 use KalynaSolutions\Tus\Facades\Tus;
 
-final readonly class TusFile implements TusFileFactoryInterface
+final readonly class TusFile implements TusFileInterface, TusFileFactoryInterface
 {
     public string $id;
 
@@ -61,5 +61,25 @@ final readonly class TusFile implements TusFileFactoryInterface
             path: $path,
             metadata: $metadata
         );
+    }
+
+    public function getId(): string
+    {
+        return $this->id;
+    }
+
+    public function getPath(): string
+    {
+        return $this->path;
+    }
+
+    public function getDisk(): string
+    {
+        return $this->disk;
+    }
+
+    public function getMetadata(): array
+    {
+        return $this->metadata;
     }
 }
