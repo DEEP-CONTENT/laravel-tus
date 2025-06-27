@@ -118,6 +118,7 @@ class Tus
             $tempFile = tempnam(sys_get_temp_dir(), 'tus_upload_');
 
             try {
+                ini_set('memory_limit', '512M');
                 // If file exists, download it first
                 if ($this->storage()->exists($path)) {
                     $existingContent = $this->storage()->get($path);
